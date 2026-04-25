@@ -263,17 +263,30 @@ function openViewer(){
 
 viewerImg.onclick=()=>viewer.style.display="none";
 
-fileInput.addEventListener("change",e=>{
-  for(const file of e.target.files){
-    const reader=new FileReader();
-    reader.onload=ev=>{
-      let data=loadImages();
-      data.push({id:"n"+Date.now()+Math.random(),src:ev.target.result,tags:{}});
-      saveImages(data);
-      render();
-    };
-    reader.readAsDataURL(file);
+/* ★ここが修正部分 */
+fileInput.addEventListener("change",async e=>{
+  const files = Array.from(e.target.files);
+  const results = [];
+
+  for(const file of files){
+    const dataUrl = await new Promise(resolve=>{
+      const reader = new FileReader();
+      reader.onload = ev=>resolve(ev.target.result);
+      reader.readAsDataURL(file);
+    });
+
+    results.push({
+      id:"n"+Date.now()+Math.random(),
+      src:dataUrl,
+      tags:{}
+    });
   }
+
+  const data = loadImages();
+  data.push(...results);
+  saveImages(data);
+
+  render();
 });
 
 function addImages(){fileInput.click();}
