@@ -27,13 +27,20 @@ color:#fff;
 .btn-home{background:#8e8e93;}
 .btn-save{background:#007aff;}
 
+.imgBox{
+margin-bottom:10px;
+}
 .imgBox img{
 width:100%;
 border-radius:10px;
 }
 
-.group{
+.tagArea{
 margin-top:10px;
+}
+
+.group{
+margin-bottom:10px;
 }
 
 .groupTitle{
@@ -41,7 +48,7 @@ font-weight:bold;
 margin-bottom:5px;
 }
 
-.tagArea{
+.tagWrap{
 display:flex;
 flex-wrap:wrap;
 gap:6px;
@@ -75,13 +82,13 @@ color:#fff;
   <img id="img">
 </div>
 
-<div id="groups"></div>
+<div id="tagArea" class="tagArea"></div>
 
 </div>
 
 <script>
 
-/* ===== load ===== */
+/* ===== データ ===== */
 function loadImages(){
   return JSON.parse(localStorage.getItem("images")) || [];
 }
@@ -94,16 +101,13 @@ function loadTags(){
 
 let images = loadImages();
 let currentIndex = 0;
-let selected = {}; // ← グループごと
+let selectedTags = {}; // ★オブジェクトに変更
 
 function getUntagged(){
   return images.filter(i=>!i.tags || Object.keys(i.tags).length===0);
 }
 
-/* ===== 描画 ===== */
 function render(){
-  images = loadImages();
-
   const list = getUntagged();
 
   if(list.length===0){
@@ -115,64 +119,61 @@ function render(){
   document.getElementById("img").src = img.src;
 
   const groups = loadTags();
-  const wrap = document.getElementById("groups");
+  const area = document.getElementById("tagArea");
+  area.innerHTML="";
 
-  wrap.innerHTML="";
-
-  groups.forEach(g=>{
-    const box=document.createElement("div");
-    box.className="group";
+  groups.forEach(group=>{
+    const gDiv=document.createElement("div");
+    gDiv.className="group";
 
     const title=document.createElement("div");
     title.className="groupTitle";
-    title.textContent=g.name;
+    title.textContent=group.name;
 
-    const area=document.createElement("div");
-    area.className="tagArea";
+    const wrap=document.createElement("div");
+    wrap.className="tagWrap";
 
-    g.list.forEach(tag=>{
+    group.list.forEach(tag=>{
       const div=document.createElement("div");
       div.className="tag";
       div.textContent=tag;
 
       div.onclick=()=>{
-        selected[g.name] = tag; // ← 上書き（1つだけ）
+        selectedTags[group.name] = tag;
         render();
       };
 
-      if(selected[g.name]===tag){
+      if(selectedTags[group.name]===tag){
         div.classList.add("active");
       }
 
-      area.appendChild(div);
+      wrap.appendChild(div);
     });
 
-    box.appendChild(title);
-    box.appendChild(area);
-    wrap.appendChild(box);
+    gDiv.appendChild(title);
+    gDiv.appendChild(wrap);
+    area.appendChild(gDiv);
   });
 }
 
-/* ===== 保存 ===== */
 function save(){
   const list = getUntagged();
   const target = list[currentIndex];
 
   const idx = images.findIndex(i=>i.id===target.id);
 
-  images[idx].tags = {...selected};
+  images[idx].tags = selectedTags;
 
   saveImages(images);
 
-  selected = {};
+  selectedTags = {};
   currentIndex++;
 
   render();
 }
 
-/* ===== ナビ ===== */
 function goHome(){
-  location.href="index.html";
+  location.href="home.html";
 }
 
 render();

@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>画像一覧</title>
+
+<style>
+body{margin:0;font-family:sans-serif;background:#f5f5f5;}
+header{background:#111;color:#fff;text-align:center;padding:12px;}
+.container{max-width:520px;margin:0 auto;padding:10px;}
+.section{margin-top:20px;}
+.sectionHeader{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;}
+
+.grid{display:flex;flex-wrap:wrap;gap:5px;}
+.imgItem{width:30%;}
+.imgItem img{
+width:100%;aspect-ratio:1/1;object-fit:cover;
+border-radius:10px;border:3px solid #fff;
+box-shadow:0 4px 10px rgba(0,0,0,0.2);
+}
+
+.empty{width:100%;text-align:center;color:#888;padding:20px 0;}
+
+button{padding:8px 10px;margin:3px;border:none;border-radius:8px;}
+.btn{background:#007aff;color:#fff;}
+.btn-add{background:#34c759;color:#fff;}
+.btn-home{background:#8e8e93;color:#fff;}
+.btn-del{background:#ff3b30;color:#fff;}
+.btn-tag{background:#af52de;color:#fff;}
+
+.viewer{
+position:fixed;top:0;left:0;width:100%;height:100%;
+background:rgba(0,0,0,0.85);
+display:flex;flex-direction:column;
+justify-content:center;align-items:center;
+z-index:999;
+}
+
+.viewerBox{
+position:relative;
+display:flex;
+justify-content:center;
+align-items:center;
+}
+
+.viewer img{
+width:70vw;
+height:auto;
+max-height:65vh;
+border-radius:10px;
+}
+
+.navArrow{
+position:absolute;
+top:50%;
+transform:translateY(-50%);
+width:60px;height:60px;
+border-radius:50%;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:30px;
+color:#fff;
+background:rgba(0,0,0,0.4);
+}
+.arrowLeft{left:-80px;}
+.arrowRight{right:-80px;}
+
+.tagArea{
+display:flex;
+flex-wrap:wrap;
+gap:6px;
+margin-top:10px;
+justify-content:center;
+}
+.tagChip{
+background:#fff;
+padding:4px 10px;
+border-radius:999px;
+font-size:12px;
+box-shadow:0 2px 6px rgba(0,0,0,0.2);
+}
+
+.closeWrap{
+width:100%;
+display:flex;
+justify-content:center;
+margin-top:10px;
+}
+.closeBtn{
+width:40px;height:40px;
+border-radius:50%;
+background:#fff;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:20px;
+box-shadow:0 2px 8px rgba(0,0,0,0.3);
+}
+
+#confirmBox{
+position:fixed;top:50%;left:50%;
+transform:translate(-50%,-50%);
+background:rgba(20,25,35,0.9);
+color:#fff;padding:20px;border-radius:14px;
+display:none;z-index:999;text-align:center;
+}
+</style>
+</head>
+
+<body>
+
+<header>画像管理</header>
+
+<div class="container">
+<button class="btn-home" onclick="goHome()">←ホーム</button>
+
+<div class="section">
+  <div class="sectionHeader">
+    <b>未タグ画像</b>
+    <div>
+      <button class="btn-tag" onclick="goTagging()">タグ付け</button>
+      <button class="btn-add" onclick="addImages()">＋新規画像追加</button>
+      <button class="btn" onclick="toggleView('untagged')">一覧</button>
+    </div>
+  </div>
+  <div id="untaggedGrid" class="grid"></div>
+</div>
+
+<div class="section">
+  <div class="sectionHeader">
+    <b>タグ済み画像</b>
+    <button class="btn" onclick="toggleView('tagged')">一覧</button>
+  </div>
+  <div id="taggedGrid" class="grid"></div>
+</div>
+
+</div>
+
+<div id="viewer" class="viewer" style="display:none;">
+  <div class="viewerBox">
+    <img id="viewerImg">
+    <div id="leftArrow" class="navArrow arrowLeft">‹</div>
+    <div id="rightArrow" class="navArrow arrowRight">›</div>
+  </div>
+
+  <div id="tagArea" class="tagArea"></div>
+  <div style="height:10px;"></div>
+  <div id="actionArea"></div>
+</div>
+
+<div id="confirmBox"></div>
+<input type="file" id="fileInput" multiple accept="image/*" style="display:none">
+
+<script>
+
+function loadImages(){return JSON.parse(localStorage.getItem("images"))||[];}
+function saveImages(data){localStorage.setItem("images",JSON.stringify(data));}
+
+let images = loadImages();
+
+let viewMode={untagged:"preview",tagged:"preview"};
+let currentType="untagged";
+let currentId=null;
+
+function goTagging(){location.href="tag.html";}
+function isTagged(i){return i.tags && Object.keys(i.tags).length>0;}
+
+function getList(type){
+  images = loadImages();
+  return type==="untagged"
+    ? images.filter(i=>!isTagged(i))
+    : images.filter(i=>isTagged(i));
+}
+
+function render(){
+  draw("untaggedGrid","untagged","未タグ画像はありません");
+  draw("taggedGrid","tagged","既タグ画像はありません");
+}
+
+function draw(id,type,emptyText){
+  const list=getList(type);
+  const grid=document.getElementById(id);
+  grid.innerHTML="";
+
+  if(list.length===0){
+    grid.innerHTML=`<div class="empty">${emptyText}</div>`;
+    return;
+  }
+
+  const show=viewMode[type]==="preview"?list.slice(0,3):list;
+
+  show.forEach((img)=>{
+    const wrap=document.createElement("div");
+    wrap.className="imgItem";
+
+    const el=document.createElement("img");
+    el.src=img.src;
+
+    el.onclick=()=>{
+      currentType=type;
+      currentId=img.id;
+      openViewer();
+    };
+
+    wrap.appendChild(el);
+    grid.appendChild(wrap);
+  });
+
+  if(viewMode[type]==="all"){
+    const closeWrap=document.createElement("div");
+    closeWrap.className="closeWrap";
+
+    const close=document.createElement("div");
+    close.className="closeBtn";
+    close.textContent="×";
+    close.onclick=()=>{
+      viewMode[type]="preview";
+      render();
+    };
+
+    closeWrap.appendChild(close);
+    grid.appendChild(closeWrap);
+  }
+}
+
+function openViewer(){
+  const list=getList(currentType);
+  const index=list.findIndex(i=>i.id===currentId);
+  if(index===-1)return;
+
+  const img=list[index];
+  viewerImg.src=img.src;
+
+  tagArea.innerHTML="";
+  if(isTagged(img)){
+    Object.entries(img.tags).forEach(([k,v])=>{
+      const chip=document.createElement("div");
+      chip.className="tagChip";
+      chip.textContent=`${k}:${v}`;
+      tagArea.appendChild(chip);
+    });
+  }
+
+  actionArea.innerHTML="";
+
+  const del=document.createElement("button");
+  del.className="btn-del";
+  del.textContent="削除";
+
+  del.onclick=(e)=>{
+    e.stopPropagation();
+    let data=loadImages().filter(i=>i.id!==img.id);
+    saveImages(data);
+    viewer.style.display="none";
+    render();
+  };
+
+  actionArea.appendChild(del);
+  viewer.style.display="flex";
+}
+
+viewerImg.onclick=()=>viewer.style.display="none";
+
+fileInput.addEventListener("change",e=>{
+  for(const file of e.target.files){
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      let data=loadImages();
+      data.push({id:"n"+Date.now()+Math.random(),src:ev.target.result,tags:{}});
+      saveImages(data);
+      render();
+    };
+    reader.readAsDataURL(file);
+  }
+});
+
+function addImages(){fileInput.click();}
+function goHome(){location.href="home.html";}
+
+function toggleView(type){
+  viewMode[type]=viewMode[type]==="preview"?"all":"preview";
+  render();
+}
+
+render();
+
+</script>
+</body>
+</html>

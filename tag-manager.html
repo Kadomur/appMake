@@ -72,7 +72,6 @@ padding:20px 0;
 
 <script>
 
-/* ===== データ ===== */
 function load(){
   return JSON.parse(localStorage.getItem("tags")) || [];
 }
@@ -80,7 +79,6 @@ function save(data){
   localStorage.setItem("tags", JSON.stringify(data));
 }
 
-/* ===== 描画 ===== */
 function render(){
   const data = load();
 
@@ -97,13 +95,11 @@ function render(){
 
   data.forEach((g,gi)=>{
 
-    /* select */
     const opt=document.createElement("option");
     opt.value=gi;
     opt.textContent=g.name;
     select.appendChild(opt);
 
-    /* group表示 */
     const box=document.createElement("div");
     box.className="groupBox";
 
@@ -114,10 +110,7 @@ function render(){
     box.appendChild(title);
 
     if(g.list.length===0){
-      const empty=document.createElement("div");
-      empty.className="empty";
-      empty.textContent="タグなし";
-      box.appendChild(empty);
+      box.innerHTML += `<div class="empty">タグなし</div>`;
     }
 
     g.list.forEach((tag,ti)=>{
@@ -136,7 +129,6 @@ function render(){
   });
 }
 
-/* ===== グループ追加 ===== */
 function addGroup(){
   const input = document.getElementById("groupInput");
   const value = input.value.trim();
@@ -147,56 +139,18 @@ function addGroup(){
   }
 
   const data = load();
-  data.push({name:value,list:[]});
+
+  // ★重複チェック
+  if(data.some(g=>g.name===value)){
+    alert("同じグループが存在します");
+    return;
+  }
+
+  data.push({ name:value, list:[] });
 
   save(data);
   input.value="";
   render();
 }
 
-/* ===== タグ追加 ===== */
-function addTag(){
-  const input = document.getElementById("tagInput");
-  const value = input.value.trim();
-  const gi = document.getElementById("groupSelect").value;
-
-  if(!value){
-    alert("入力してください");
-    return;
-  }
-
-  const data = load();
-
-  if(data.length===0){
-    alert("先にグループを作ってください");
-    return;
-  }
-
-  data[gi].list.push(value);
-
-  save(data);
-  input.value="";
-  render();
-}
-
-/* ===== 削除 ===== */
-function deleteTag(gi,ti){
-  if(!confirm("削除しますか？")) return;
-
-  const data = load();
-  data[gi].list.splice(ti,1);
-
-  save(data);
-  render();
-}
-
-/* ===== ナビ ===== */
-function goHome(){
-  location.href="index.html";
-}
-
-render();
-
-</script>
-</body>
-</html>
+function
