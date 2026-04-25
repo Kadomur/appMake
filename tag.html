@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>未タグ画像一覧</title>
+
+<style>
+body{margin:0;font-family:sans-serif;background:#f5f5f5;}
+header{background:#111;color:#fff;text-align:center;padding:12px;}
+
+.container{max-width:520px;margin:0 auto;padding:10px;}
+
+.topBar{
+display:flex;
+justify-content:space-between;
+margin-bottom:10px;
+}
+
+button{
+padding:8px 10px;
+border:none;
+border-radius:8px;
+color:#fff;
+}
+
+.btn-home{background:#8e8e93;}
+.btn-save{background:#007aff;}
+
+.imgBox img{
+width:100%;
+border-radius:10px;
+}
+
+.group{
+margin-top:10px;
+}
+
+.groupTitle{
+font-weight:bold;
+margin-bottom:5px;
+}
+
+.tagArea{
+display:flex;
+flex-wrap:wrap;
+gap:6px;
+}
+
+.tag{
+padding:6px 10px;
+border-radius:999px;
+background:#ddd;
+}
+
+.tag.active{
+background:#007aff;
+color:#fff;
+}
+</style>
+</head>
+
+<body>
+
+<header>未タグ画像一覧</header>
+
+<div class="container">
+
+<div class="topBar">
+  <button class="btn-home" onclick="goHome()">ホーム</button>
+  <button class="btn-save" onclick="save()">保存</button>
+</div>
+
+<div class="imgBox">
+  <img id="img">
+</div>
+
+<div id="groups"></div>
+
+</div>
+
+<script>
+
+/* ===== load ===== */
+function loadImages(){
+  return JSON.parse(localStorage.getItem("images")) || [];
+}
+function saveImages(data){
+  localStorage.setItem("images", JSON.stringify(data));
+}
+function loadTags(){
+  return JSON.parse(localStorage.getItem("tags")) || [];
+}
+
+let images = loadImages();
+let currentIndex = 0;
+let selected = {}; // ← グループごと
+
+function getUntagged(){
+  return images.filter(i=>!i.tags || Object.keys(i.tags).length===0);
+}
+
+/* ===== 描画 ===== */
+function render(){
+  images = loadImages();
+
+  const list = getUntagged();
+
+  if(list.length===0){
+    alert("未タグ画像がありません");
+    return;
+  }
+
+  const img = list[currentIndex];
+  document.getElementById("img").src = img.src;
+
+  const groups = loadTags();
+  const wrap = document.getElementById("groups");
+
+  wrap.innerHTML="";
+
+  groups.forEach(g=>{
+    const box=document.createElement("div");
+    box.className="group";
+
+    const title=document.createElement("div");
+    title.className="groupTitle";
+    title.textContent=g.name;
+
+    const area=document.createElement("div");
+    area.className="tagArea";
+
+    g.list.forEach(tag=>{
+      const div=document.createElement("div");
+      div.className="tag";
+      div.textContent=tag;
+
+      div.onclick=()=>{
+        selected[g.name] = tag; // ← 上書き（1つだけ）
+        render();
+      };
+
+      if(selected[g.name]===tag){
+        div.classList.add("active");
+      }
+
+      area.appendChild(div);
+    });
+
+    box.appendChild(title);
+    box.appendChild(area);
+    wrap.appendChild(box);
+  });
+}
+
+/* ===== 保存 ===== */
+function save(){
+  const list = getUntagged();
+  const target = list[currentIndex];
+
+  const idx = images.findIndex(i=>i.id===target.id);
+
+  images[idx].tags = {...selected};
+
+  saveImages(images);
+
+  selected = {};
+  currentIndex++;
+
+  render();
+}
+
+/* ===== ナビ ===== */
+function goHome(){
+  location.href="index.html";
+}
+
+render();
+
+</script>
+</body>
+</html>
