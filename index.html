@@ -150,7 +150,6 @@ display:none;z-index:999;text-align:center;
   <div id="actionArea"></div>
 </div>
 
-<div id="confirmBox"></div>
 <input type="file" id="fileInput" multiple accept="image/*" style="display:none">
 
 <script>
@@ -263,30 +262,30 @@ function openViewer(){
 
 viewerImg.onclick=()=>viewer.style.display="none";
 
-/* ★ここが修正部分 */
-fileInput.addEventListener("change",async e=>{
+/* ★安定版：Promise.all */
+fileInput.addEventListener("change", e=>{
   const files = Array.from(e.target.files);
-  const results = [];
 
-  for(const file of files){
-    const dataUrl = await new Promise(resolve=>{
+  const readers = files.map(file=>{
+    return new Promise(resolve=>{
       const reader = new FileReader();
-      reader.onload = ev=>resolve(ev.target.result);
+      reader.onload = ev=>{
+        resolve({
+          id:"n"+Date.now()+Math.random(),
+          src:ev.target.result,
+          tags:{}
+        });
+      };
       reader.readAsDataURL(file);
     });
+  });
 
-    results.push({
-      id:"n"+Date.now()+Math.random(),
-      src:dataUrl,
-      tags:{}
-    });
-  }
-
-  const data = loadImages();
-  data.push(...results);
-  saveImages(data);
-
-  render();
+  Promise.all(readers).then(results=>{
+    const data = loadImages();
+    data.push(...results);
+    saveImages(data);
+    render();
+  });
 });
 
 function addImages(){fileInput.click();}
