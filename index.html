@@ -1,11 +1,202 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>タグ管理</title>
+
+<style>
+body{margin:0;font-family:sans-serif;background:#f5f5f5;}
+header{background:#111;color:#fff;text-align:center;padding:12px;}
+
+.container{max-width:520px;margin:0 auto;padding:10px;}
+
+button{padding:8px 10px;border:none;border-radius:8px;color:#fff;}
+.btn-home{background:#8e8e93;}
+.btn-add{background:#34c759;}
+.btn-del{background:#ff3b30;}
+
+.inputArea{display:flex;gap:5px;margin-bottom:10px;}
+input,select{flex:1;padding:8px;border-radius:8px;border:1px solid #ccc;}
+
+.groupBox{
+background:#fff;
+padding:10px;
+border-radius:10px;
+margin-bottom:10px;
+}
+
+.groupTitle{
+font-weight:bold;
+margin-bottom:6px;
+}
+
+.tagItem{
+display:flex;
+justify-content:space-between;
+margin:4px 0;
+}
+
+.empty{
+text-align:center;
+color:#888;
+padding:20px 0;
+}
+</style>
+</head>
+
 <body>
 
-<script>
-localStorage.setItem("test","123");
-alert(localStorage.getItem("test"));
-</script>
+<header>タグ管理</header>
 
+<div class="container">
+
+<button class="btn-home" onclick="goHome()">ホーム</button>
+
+<h3>グループ追加</h3>
+<div class="inputArea">
+  <input id="groupInput" placeholder="例：人数">
+  <button class="btn-add" onclick="addGroup()">追加</button>
+</div>
+
+<h3>タグ追加</h3>
+<div class="inputArea">
+  <input id="tagInput" placeholder="例：1人">
+  <select id="groupSelect"></select>
+  <button class="btn-add" onclick="addTag()">追加</button>
+</div>
+
+<div id="list"></div>
+
+</div>
+
+<script>
+
+/* ===== データ ===== */
+function load(){
+  return JSON.parse(localStorage.getItem("tags")) || [];
+}
+function save(data){
+  localStorage.setItem("tags", JSON.stringify(data));
+}
+
+/* ===== 描画 ===== */
+function render(){
+  const data = load();
+
+  const list = document.getElementById("list");
+  const select = document.getElementById("groupSelect");
+
+  list.innerHTML="";
+  select.innerHTML="";
+
+  if(data.length===0){
+    list.innerHTML = `<div class="empty">グループがありません</div>`;
+    return;
+  }
+
+  data.forEach((g,gi)=>{
+
+    /* select */
+    const opt=document.createElement("option");
+    opt.value=gi;
+    opt.textContent=g.name;
+    select.appendChild(opt);
+
+    /* group表示 */
+    const box=document.createElement("div");
+    box.className="groupBox";
+
+    const title=document.createElement("div");
+    title.className="groupTitle";
+    title.textContent=g.name;
+
+    box.appendChild(title);
+
+    if(g.list.length===0){
+      const empty=document.createElement("div");
+      empty.className="empty";
+      empty.textContent="タグなし";
+      box.appendChild(empty);
+    }
+
+    g.list.forEach((tag,ti)=>{
+      const row=document.createElement("div");
+      row.className="tagItem";
+
+      row.innerHTML = `
+        <span>${tag}</span>
+        <button onclick="deleteTag(${gi},${ti})" class="btn-del">削除</button>
+      `;
+
+      box.appendChild(row);
+    });
+
+    list.appendChild(box);
+  });
+}
+
+/* ===== グループ追加 ===== */
+function addGroup(){
+  const input = document.getElementById("groupInput");
+  const value = input.value.trim();
+
+  if(!value){
+    alert("入力してください");
+    return;
+  }
+
+  const data = load();
+  data.push({name:value,list:[]});
+
+  save(data);
+  input.value="";
+  render();
+}
+
+/* ===== タグ追加 ===== */
+function addTag(){
+  const input = document.getElementById("tagInput");
+  const value = input.value.trim();
+  const gi = document.getElementById("groupSelect").value;
+
+  if(!value){
+    alert("入力してください");
+    return;
+  }
+
+  const data = load();
+
+  if(data.length===0){
+    alert("先にグループを作ってください");
+    return;
+  }
+
+  data[gi].list.push(value);
+
+  save(data);
+  input.value="";
+  render();
+}
+
+/* ===== 削除 ===== */
+function deleteTag(gi,ti){
+  if(!confirm("削除しますか？")) return;
+
+  const data = load();
+  data[gi].list.splice(ti,1);
+
+  save(data);
+  render();
+}
+
+/* ===== ナビ ===== */
+function goHome(){
+  location.href="index.html";
+}
+
+render();
+
+</script>
 </body>
 </html>
